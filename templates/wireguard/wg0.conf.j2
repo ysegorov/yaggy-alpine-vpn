@@ -1,0 +1,33 @@
+## {{ yaggy_managed }}
+
+[Interface]
+PrivateKey = {{ secret('vpn_server.private_key') }}
+ListenPort = {{ secret('vpn_server.listen_port') }}
+# NB. lines below only for use with wg-quick
+# Address = {{ secret('vpn_server.ipv4_address') }},{{ secret('vpn_server.ipv6_address') }}
+# PreUp =
+# PostUp =
+# PostUp = echo "$(date +%s) WireGuard Started" >> /var/log/wireguard.log
+# PreDown =
+# PostDown =
+# PostDown = echo "$(date +%s) WireGuard Stopped" >> /var/log/wireguard.log
+
+[Peer]
+PublicKey = {{ secret('vpn_peer01.public_key') }}
+PresharedKey = {{ secret('vpn_peer01.preshared_key') }}
+AllowedIPs = {{ secret('vpn_peer01.allowed_ips') }}
+# NB. add to client configuration in case client is behind NAT
+# PersistentKeepalive = 25
+
+
+# [Interface]
+# PrivateKey = <>
+# Address = 10.42.42.1/24,fd42:42:42::1/64
+# PostUp = iptables -A FORWARD -s 10.42.42.0/24 -j ACCEPT; iptables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT; ip6tables -A FORWARD -s fd42:42:42::/64 -j ACCEPT; ip6tables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; ip6tables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+# PostDown = iptables -D FORWARD -s 10.42.42.0/24 -j ACCEPT; iptables -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT; ip6tables -D FORWARD -s fd42:42:42::/64 -j ACCEPT; ip6tables -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE; ip6tables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+# ListenPort = 51780
+
+# [Peer]
+# PublicKey = <>
+# PresharedKey = <>
+# AllowedIPs = 10.42.42.2/32, fd42:42:42::2/128

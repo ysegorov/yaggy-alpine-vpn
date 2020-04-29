@@ -1,0 +1,50 @@
+
+SECRETS secrets alpine-vpn/{{ hostname }}.toml
+
+CONNECT
+
+SYNC
+
+RUN sudo apk update
+
+RUN sudo apk add ca-certificates coreutils shadow diffutils grep gzip bzip2
+RUN sudo apk add vim mc htop
+RUN sudo apk add bash bash-completion
+
+RUN sudo apk add {{ secret('server.wireguard_packages') }}
+RUN sudo apk add iptables ip6tables
+
+RUN sudo apk add unbound drill
+RUN sudo apk add git
+
+RUN sudo cp {{ syncroot }}/sysctl.d/99-local.conf /etc/sysctl.d/
+RUN sudo sysctl -p /etc/sysctl.d/99-local.conf
+
+RUN sudo mkdir -p /etc/wireguard
+@wg_conf RUN! sudo diff -q /etc/wireguard/wg0.conf {{ syncroot }}/wireguard/wg0.conf
+FAILED? @wg_conf sudo cp {{ syncroot }}/wireguard/wg0.conf /etc/wireguard/
+RUN sudo chmod 600 /etc/wireguard/wg0.conf
+
+@interfaces RUN! sudo diff -q /etc/network/interfaces {{ syncroot }}/network/interfaces
+FAILED? @interfaces sudo cp {{ syncroot }}/network/interfaces /etc/network/
+RUN sudo chmod 600 /etc/network/interfaces
+
+RUN sudo cp {{ syncroot }}/conf.d/iptables {{ syncroot }}/conf.d/ip6tables /etc/conf.d/
+RUN sudo cp {{ syncroot }}/iptables/iptables.rules {{ syncroot }}/iptables/ip6tables.rules /etc/iptables/
+RUN sudo chmod 600 /etc/iptables/*.rules
+RUN sudo service iptables restart
+RUN sudo service ip6tables restart
+
+RUN sudo rc-update add iptables
+RUN sudo rc-update add ip6tables
+
+@unbound RUN! sudo diff -q /etc/unbound/unbound.conf {{ syncroot }}/unbound/unbound.conf
+FAILED? @unbound sudo cp {{ syncroot }}/unbound/unbound.conf /etc/unbound/
+RUN sudo chmod 600 /etc/unbound/unbound.conf
+RUN sudo rc-update add unbound
+RUN sudo service unbound restart
+
+FAILED? @interfaces sudo reboot
+RECONNECT? @interfaces 60
+
+DISCONNECT

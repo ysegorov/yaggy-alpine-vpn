@@ -1,0 +1,26 @@
+# {{ yaggy_managed }}
+auto lo
+iface lo inet loopback
+
+auto eth0
+#iface eth0 inet6 manual
+iface eth0 inet dhcp
+  post-up echo "nameserver 127.0.0.1" >/etc/resolv.conf
+
+# iface eth0 inet static
+#     address 176.58.122.230
+#     netmask 255.255.255.0
+#     gateway 176.58.122.1
+#     #post-up echo "nameserver 127.0.0.1" >/etc/resolv.conf
+
+auto wg0
+iface wg0 inet static
+  address {{ secret('vpn_server.ipv4_address') }}
+  netmask 255.255.255.0
+  pre-up ip link add dev wg0 type wireguard
+  pre-up wg setconf wg0 /etc/wireguard/wg0.conf
+  pre-down ip link delete dev wg0
+
+iface wg0 inet6 static
+  address {{ secret('vpn_server.ipv6_address') }}
+  netmask 64

@@ -1,0 +1,39 @@
+# {{ yaggy_managed }}
+
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+[0:0] -A INPUT -i lo -j ACCEPT
+[0:0] -A INPUT -p icmp -j ACCEPT
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags SYN,ACK SYN,ACK -m conntrack --ctstate NEW -j REJECT --reject-with tcp-reset
+[0:0] -A INPUT -p tcp -m tcp ! --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags FIN,RST FIN,RST -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags FIN,ACK FIN -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags PSH,ACK PSH -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags ACK,URG URG -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags FIN,SYN FIN,SYN -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags SYN,RST SYN,RST -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -p tcp -m tcp --sport 0 -j REJECT --reject-with icmp-port-unreachable
+[0:0] -A INPUT -m conntrack --ctstate INVALID -j REJECT --reject-with icmp-host-unreachable
+[0:0] -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+[0:0] -A INPUT -p tcp -m tcp --dport {{ secret('server.ssh_port') }} -m conntrack --ctstate NEW -j ACCEPT
+[0:0] -A INPUT -p udp -m udp -i eth0 --dport {{ secret('vpn_server.listen_port') }}  -m conntrack --ctstate NEW -j ACCEPT
+[0:0] -A INPUT -p tcp -m tcp -i wg0 --dport 53 -j ACCEPT
+[0:0] -A INPUT -p udp -m udp -i wg0 --dport 53 -j ACCEPT
+[0:0] -A INPUT -j REJECT --reject-with icmp-port-unreachable
+{# #[0:0] -A INPUT #}
+[0:0] -A FORWARD -m conntrack --ctstate INVALID -j REJECT --reject-with icmp-host-unreachable
+[0:0] -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+[0:0] -A FORWARD -i wg0 -o eth0 -j ACCEPT
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+[0:0] -A POSTROUTING -o eth0 -s {{ secret('vpn_server.ipv4_network') }} -j MASQUERADE
+COMMIT
+# completed
